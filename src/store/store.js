@@ -1,8 +1,12 @@
 import { configureStore } from '@reduxjs/toolkit';
-import recipeSlice from './slices/recipeSlice';
+import recipeReducer from './slices/recipeSlice';
 
 export const store = configureStore({
   reducer: {
-    recipes: recipeSlice,
+    recipes: recipeReducer,
   },
+  middleware: (getDefault) =>
+    getDefault({
+      serializableCheck: false,
+    }),
 });

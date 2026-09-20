@@ -1,299 +1,137 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
-  Box,
-  Container,
-  Typography,
-  Paper,
-  Grid,
-  Chip,
-  IconButton,
-  Checkbox,
-  Divider,
-  Button,
-  Card,
-  CardMedia,
-  List,
-  ListItem,
-  ListItemIcon,
-  ListItemText,
-  Tooltip,
-  TextField,
+  Box, Container, Typography, Grid, Chip, IconButton, Checkbox, Divider, Button, Card, CardMedia, List, ListItem, ListItemIcon, ListItemText, Tooltip, Snackbar, Alert
 } from '@mui/material';
-import {
-  Clock,
-  ArrowLeft,
-  ThumbsUp,
-  CheckCircle,
-  Circle,
-  Share2,
-  Send,
-} from 'lucide-react';
+import { Clock, ArrowLeft, ThumbsUp, CheckCircle, Circle, Share2 } from 'lucide-react';
+import { useSelector, useDispatch } from 'react-redux';
+import { toggleLike, toggleStep } from '../../store/slices/recipeSlice';
+import CommentSection from '../CommentSection';
 import './RecipeDetail.css';
-import CommentSection from './CommentSection';
 
-function RecipeDetail({ recipes }) {
+function RecipeDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [recipe, setRecipe] = useState(null);
-  const [completedSteps, setCompletedSteps] = useState([]);
-  const [liked, setLiked] = useState(false);
-  const [comments, setComments] = useState([]);
-  const [newCommentText, setNewCommentText] = useState('');
+  const dispatch = useDispatch();
+  const recipes = useSelector(s => s.recipes.recipes);
+  const likedIds = useSelector(s => s.recipes.likedIds);
+  const favorites = useSelector(s => s.recipes.favorites);
+  const completedStepsMap = useSelector(s => s.recipes.completedSteps);
+  const [snackbar, setSnackbar] = React.useState({ open: false, message: '', severity: 'success' });
 
-  useEffect(() => {
-    const foundRecipe = recipes.find(r => r._id === id);
-    if (foundRecipe) {
-      setRecipe(foundRecipe);
-      // Initialize completed steps from localStorage if available
-      const savedSteps = localStorage.getItem(`recipe-${id}-steps`);
-      if (savedSteps) {
-        setCompletedSteps(JSON.parse(savedSteps));
-      }
-      // Initialize liked state from localStorage if available
-      const savedLiked = localStorage.getItem(`recipe-${id}-liked`);
-      if (savedLiked) {
-        setLiked(JSON.parse(savedLiked));
-      }
-      // Initialize comments from localStorage if available
-      const savedComments = localStorage.getItem(`recipe-${id}-comments`);
-      if (savedComments) {
-        setComments(JSON.parse(savedComments));
-      }
-    }
-  }, [id, recipes]);
-
-  const handleStepToggle = (stepIndex) => {
-    setCompletedSteps(prev => {
-      const newSteps = prev.includes(stepIndex)
-        ? prev.filter(i => i !== stepIndex)
-        : [...prev, stepIndex];
-      // Save to localStorage
-      localStorage.setItem(`recipe-${id}-steps`, JSON.stringify(newSteps));
-      return newSteps;
-    });
-  };
-
-  const handleLikeToggle = () => {
-    setLiked(prev => {
-      const newLiked = !prev;
-      // Save to localStorage
-      localStorage.setItem(`recipe-${id}-liked`, JSON.stringify(newLiked));
-      return newLiked;
-    });
-  };
-
-  const handleShare = () => {
-    if (navigator.share) {
-      navigator.share({
-        title: recipe.name,
-        text: `Check out this recipe: ${recipe.name}`,
-        url: window.location.href,
-      }).catch(console.error);
-    } else {
-      // Fallback for browsers that don't support the Web Share API
-      navigator.clipboard.writeText(window.location.href);
-      // You could add a snackbar/toast notification here
-    }
-  };
-
-  const handleAddComment = () => {
-    if (newCommentText.trim() === '') return;
-
-    const comment = {
-      id: Date.now(),
-      author: 'Anonymous User', // Default author for now
-      text: newCommentText.trim(),
-      date: new Date().toLocaleString(),
-    };
-
-    setComments(prev => {
-      const newComments = [...prev, comment];
-      localStorage.setItem(`recipe-${id}-comments`, JSON.stringify(newComments));
-      return newComments;
-    });
-
-    setNewCommentText('');
-  };
+  const recipe = recipes.find(r => String(r._id || r.id) === String(id));
+  const completedSteps = completedStepsMap[String(id)] || [];
+  const liked = [...likedIds, ...favorites].map(String).includes(String(id));
 
   if (!recipe) {
     return (
-      <Container maxWidth="lg" sx={{ py: 4 }}>
-        <Typography variant="h5" sx={{ textAlign: 'center', color: '#666' }}>
-          Recipe not found
-        </Typography>
+      <Container maxWidth="lg" sx={{ py: 12, textAlign: 'center' }}>
+        <Typography variant="h5" sx={{ color: '#666', mb: 2 }}>Recipe not found</Typography>
+        <Button variant="contained" onClick={() => navigate('/recipes')} sx={{ bgcolor: '#2D5016' }}>Back to Recipes</Button>
       </Container>
     );
   }
 
+  const handleStepToggle = (stepIndex) => {
+    dispatch(toggleStep({ recipeId: String(id), stepIndex }));
+  };
+
+  const handleLikeToggle = () => {
+    dispatch(toggleLike(String(id)));
+  };
+
+  const handleShare = async () => {
+    const url = window.location.href;
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: recipe.name || recipe.title, text: `Check out this recipe: ${recipe.name || recipe.title}`, url });
+      } catch {}
+    } else {
+      try {
+        await navigator.clipboard.writeText(url);
+        setSnackbar({ open: true, message: 'Link copied to clipboard!', severity: 'success' });
+      } catch {
+        setSnackbar({ open: true, message: url, severity: 'info' });
+      }
+    }
+  };
+
   return (
     <Box sx={{ bgcolor: '#F5F0E1', minHeight: '100vh', pt: { xs: 8, md: 10 }, pb: 8 }}>
       <Container maxWidth="lg">
-        <Button
-          startIcon={<ArrowLeft size={20} />}
-          onClick={() => navigate(-1)}
-          sx={{
-            color: '#2D5016',
-            mb: 3,
-            '&:hover': {
-              bgcolor: 'rgba(45, 80, 22, 0.1)',
-            },
-          }}
-        >
+        <Button startIcon={<ArrowLeft size={20} />} onClick={() => navigate(-1)} sx={{ color: '#2D5016', mb: 3, '&:hover': { bgcolor: 'rgba(45, 80, 22, 0.1)' } }}>
           Back to Recipes
         </Button>
 
         <Grid container spacing={4}>
-          {/* Recipe Image and Basic Info */}
           <Grid item xs={12} md={6}>
-            <Card
-              sx={{
-                borderRadius: 3,
-                overflow: 'hidden',
-                boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)',
-                height: '100%',
-              }}
-            >
-              <CardMedia
-                component="img"
-                image={recipe.image}
-                alt={recipe.name}
-                sx={{ height: 400, objectFit: 'cover' }}
-              />
+            <Card sx={{ borderRadius: 3, overflow: 'hidden', boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)' }}>
+              <CardMedia component="img" image={recipe.image} alt={recipe.name || recipe.title} sx={{ height: 420, objectFit: 'cover' }} />
             </Card>
           </Grid>
 
-          {/* Recipe Details */}
           <Grid item xs={12} md={6}>
-            <Box sx={{ mb: 4 }}>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
-                <Typography variant="h4" sx={{ color: '#2D5016', fontWeight: 700 }}>
-                  {recipe.name}
-                </Typography>
-                <Box sx={{ display: 'flex', gap: 1 }}>
-                  <Tooltip title={liked ? "Unlike recipe" : "Like recipe"}>
-                    <IconButton
-                      onClick={handleLikeToggle}
-                      sx={{
-                        color: liked ? '#2196F3' : '#666',
-                        '&:hover': {
-                          bgcolor: 'rgba(33, 150, 243, 0.1)',
-                        },
-                      }}
-                    >
-                      <ThumbsUp
-                        size={24}
-                        fill={liked ? '#2196F3' : 'none'}
-                      />
+            <Box sx={{ mb: 2 }}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2, gap: 2 }}>
+                <Typography variant="h4" sx={{ color: '#2D5016', fontWeight: 700, lineHeight: 1.2 }}>{recipe.name || recipe.title}</Typography>
+                <Box sx={{ display: 'flex', gap: 1, flexShrink: 0 }}>
+                  <Tooltip title={liked ? 'Unlike recipe' : 'Like recipe'}>
+                    <IconButton onClick={handleLikeToggle} sx={{ color: liked ? '#2196F3' : '#666', bgcolor: liked ? 'rgba(33,150,243,0.1)' : 'white', border: '1px solid', borderColor: liked ? '#2196F3' : '#e0e0e0', '&:hover': { bgcolor: 'rgba(33, 150, 243, 0.15)' } }}>
+                      <ThumbsUp size={22} fill={liked ? '#2196F3' : 'none'} />
                     </IconButton>
                   </Tooltip>
                   <Tooltip title="Share recipe">
-                    <IconButton
-                      onClick={handleShare}
-                      sx={{
-                        color: '#666',
-                        '&:hover': {
-                          bgcolor: 'rgba(45, 80, 22, 0.1)',
-                        },
-                      }}
-                    >
-                      <Share2 size={24} />
+                    <IconButton onClick={handleShare} sx={{ color: '#666', bgcolor: 'white', border: '1px solid #e0e0e0', '&:hover': { bgcolor: 'rgba(45, 80, 22, 0.08)' } }}>
+                      <Share2 size={22} />
                     </IconButton>
                   </Tooltip>
                 </Box>
               </Box>
 
-              <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
-                <Chip
-                  icon={<Clock size={16} />}
-                  label={recipe.time}
-                  sx={{
-                    bgcolor: 'rgba(45, 80, 22, 0.1)',
-                    color: '#2D5016',
-                    '& .MuiChip-icon': { color: '#2D5016' },
-                  }}
-                />
-                <Chip
-                  label={recipe.difficulty}
-                  sx={{
-                    bgcolor: recipe.difficulty === 'Easy' ? '#4CAF50' :
-                           recipe.difficulty === 'Medium' ? '#FF9800' : '#F44336',
-                    color: 'white',
-                    fontWeight: 600,
-                  }}
-                />
+              <Box sx={{ display: 'flex', gap: 1.5, mb: 3, flexWrap: 'wrap' }}>
+                <Chip icon={<Clock size={16} />} label={recipe.time || recipe.cookTime} sx={{ bgcolor: 'rgba(45, 80, 22, 0.1)', color: '#2D5016', '& .MuiChip-icon': { color: '#2D5016' } }} />
+                <Chip label={recipe.difficulty} sx={{ bgcolor: recipe.difficulty === 'Easy' ? '#4CAF50' : recipe.difficulty === 'Medium' ? '#FF9800' : '#F44336', color: 'white', fontWeight: 600 }} />
+                <Chip label={`${recipe.likes ?? 0} likes`} sx={{ bgcolor: liked ? '#2196F3' : 'white', color: liked ? 'white' : '#666', border: '1px solid', borderColor: liked ? '#2196F3' : '#e0e0e0', fontWeight: 600 }} />
+                {recipe.rating && <Chip label={`★ ${recipe.rating}`} sx={{ bgcolor: '#FFF8E7', color: '#2D5016', border: '1px solid #e0e0e0', fontWeight: 600 }} />}
               </Box>
 
-              <Typography
-                variant="body1"
-                sx={{
-                  color: 'rgba(45, 80, 22, 0.8)',
-                  lineHeight: 1.6,
-                  mb: 4,
-                }}
-              >
-                {recipe.description}
-              </Typography>
+              <Typography variant="body1" sx={{ color: 'rgba(45, 80, 22, 0.8)', lineHeight: 1.7, mb: 3 }}>{recipe.description}</Typography>
 
               <Divider sx={{ my: 3 }} />
 
-              <Typography variant="h6" sx={{ color: '#2D5016', fontWeight: 600, mb: 2 }}>
-                Steps to Follow
-              </Typography>
+              <Typography variant="h6" sx={{ color: '#2D5016', fontWeight: 700, mb: 1 }}>Steps to Follow</Typography>
+              <Typography variant="body2" sx={{ color: '#888', mb: 2 }}>{completedSteps.length} of {recipe.steps?.length || 0} completed</Typography>
 
               <List sx={{ width: '100%' }}>
-                {recipe.steps.map((step, index) => (
-                  <ListItem
-                    key={index}
-                    sx={{
-                      bgcolor: 'white',
-                      borderRadius: 2,
-                      mb: 1,
-                      transition: 'all 0.3s ease',
-                      '&:hover': {
-                        transform: 'translateX(8px)',
-                        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
-                      },
-                    }}
-                  >
-                    <ListItemIcon>
-                      <Checkbox
-                        checked={completedSteps.includes(index)}
-                        onChange={() => handleStepToggle(index)}
-                        icon={<Circle size={24} color="#666" />}
-                        checkedIcon={<CheckCircle size={24} color="#4CAF50" fill="#4CAF50" />}
-                        sx={{
-                          '&:hover': {
-                            bgcolor: 'rgba(76, 175, 80, 0.1)',
-                          },
-                        }}
-                      />
-                    </ListItemIcon>
-                    <ListItemText
-                      primary={
-                        <Typography
-                          sx={{
-                            color: completedSteps.includes(index) ? '#4CAF50' : '#2D5016',
-                            textDecoration: completedSteps.includes(index) ? 'line-through' : 'none',
-                            transition: 'all 0.3s ease',
-                          }}
-                        >
-                          {step}
-                        </Typography>
-                      }
-                    />
-                  </ListItem>
-                ))}
+                {(recipe.steps || []).map((step, index) => {
+                  const done = completedSteps.includes(index);
+                  return (
+                    <ListItem key={index} sx={{ bgcolor: done ? '#E8F5E9' : 'white', border: done ? '1px solid #C8E6C9' : '1px solid transparent', borderRadius: 2, mb: 1, transition: 'all 0.2s ease', '&:hover': { transform: 'translateX(4px)', boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)' } }}>
+                      <ListItemIcon sx={{ minWidth: 44 }}>
+                        <Checkbox
+                          checked={done}
+                          onChange={() => handleStepToggle(index)}
+                          icon={<Circle size={24} color="#9e9e9e" />}
+                          checkedIcon={<CheckCircle size={24} color="#4CAF50" fill="#4CAF50" />}
+                        />
+                      </ListItemIcon>
+                      <ListItemText primary={<Typography sx={{ color: done ? '#4CAF50' : '#2D5016', textDecoration: done ? 'line-through' : 'none', transition: 'all 0.2s ease', lineHeight: 1.5 }}>{step}</Typography>} />
+                    </ListItem>
+                  );
+                })}
               </List>
             </Box>
           </Grid>
         </Grid>
 
-        {/* Comments Section */}
-        {recipe && <CommentSection recipeId={recipe._id} />}
+        <CommentSection recipeId={String(id)} />
       </Container>
+
+      <Snackbar open={snackbar.open} autoHideDuration={2500} onClose={() => setSnackbar({ ...snackbar, open: false })} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
+        <Alert severity={snackbar.severity} onClose={() => setSnackbar({ ...snackbar, open: false })}>{snackbar.message}</Alert>
+      </Snackbar>
     </Box>
   );
 }
 
-export default RecipeDetail; 
+export default RecipeDetail;

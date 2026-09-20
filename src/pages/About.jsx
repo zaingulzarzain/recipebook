@@ -1,31 +1,14 @@
 import React from 'react';
-import { Box, Container, Typography, Grid, Paper, Avatar } from '@mui/material';
+import { Box, Container, Typography, Grid } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import { motion } from 'framer-motion';
-import LocalDiningIcon from '@mui/icons-material/LocalDining'; // Example icon
-import HistoryIcon from '@mui/icons-material/History'; // Example icon
-import GroupIcon from '@mui/icons-material/Group'; // Example icon
+import LocalDiningIcon from '@mui/icons-material/LocalDining';
+import HistoryIcon from '@mui/icons-material/History';
 import './About.css';
 
 const Section = styled(Box)(({ theme }) => ({
   padding: theme.spacing(8, 0),
   textAlign: 'center',
-}));
-
-const CardStyled = styled(Paper)(({ theme }) => ({
-  padding: theme.spacing(4),
-  borderRadius: theme.shape.borderRadius * 2,
-  boxShadow: theme.shadows[3],
-  height: '100%',
-  display: 'flex',
-  flexDirection: 'column',
-  alignItems: 'center',
-  justifyContent: 'center',
-  transition: 'transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out',
-  '&:hover': {
-    transform: 'translateY(-10px)',
-    boxShadow: theme.shadows[10],
-  },
 }));
 
 const About = () => {
