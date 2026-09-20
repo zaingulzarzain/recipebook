@@ -174,7 +174,7 @@ Tests check that `FlavorVault` brand and navigation render. Extend in `src/App.t
 **Zain Gulzar** — Built and designed by me. Available for freelance React / Full-stack work on Upwork.
 
 - GitHub: [@zaingulzarzain](https://github.com/zaingulzarzain)
-- Live Demo: _add your deployed URL here_
+
 
 ---
 
