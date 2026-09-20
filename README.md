@@ -7,6 +7,7 @@ A modern, responsive recipe discovery platform built with **React 18**, **Redux 
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![React](https://img.shields.io/badge/React-18.2-blue)
 ![MUI](https://img.shields.io/badge/MUI-5.15-007FFF)
+![Live](https://img.shields.io/badge/Live-Demo-FF6B35)
 ![Redux](https://img.shields.io/badge/Redux_Toolkit-2.2-764ABC)
 
 ---
